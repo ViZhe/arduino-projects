@@ -13,6 +13,9 @@
 // Обычная зона: с 10:00 до 17:00 часов, с 21:00 до 23:00 часов
 // Пиковая зона: с 7:00 до 10:00 часов, с 17:00 до 21:00 часов
 
+// TODO: Отключать монитор после 15 секунд бездействия
+// TODO: Режим редактирования времени и погрешности (5-30 минут)
+// TODO: Тумблер с 3 режимами: ВКЛ реле, АВТО реле, ВЫКЛ реле
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -38,6 +41,9 @@ void setup() {
     LCD.backlight();
     RTC.Begin();
 
+    pinMode(pinLedGreen, OUTPUT);
+    pinMode(pinLedYellow, OUTPUT);
+    pinMode(pinLedRed, OUTPUT);
 
     TimeZoneAccuracy = RTC.GetMemory(accuracyPlace);
     if (!TimeZoneAccuracy) {
@@ -102,13 +108,7 @@ void loop() {
     Serial.println(getDateTime(now)); // TODO: only for test
 
     LCD.setCursor(0, 2);
-    LCD.print("3OHA");
-    LCD.setCursor(6, 2);
-    LCD.print("+-");
-    LCD.setCursor(15, 2);
-    LCD.print("PEJIE");
-    LCD.setCursor(9, 2);
-    LCD.print("TEMP");
+    LCD.print("3OHA  +- TEMP  PEJIE");
     LCD.setCursor(6, 3);
     LCD.print(TimeZoneAccuracy);
 
