@@ -15,7 +15,6 @@
 
 // TODO: Отключать монитор после 15 секунд бездействия
 // TODO: Режим редактирования времени и погрешности (5-30 минут)
-// TODO: Тумблер с 3 режимами: ВКЛ реле, АВТО реле, ВЫКЛ реле
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -29,6 +28,11 @@ int pinLedGreen = 11;
 int pinLedYellow = 12;
 int pinLedRed = 13;
 
+String releController;
+
+int tumblerOn = 2;
+int tumblerOff = 3;
+
 int accuracyPlace = 0;
 int accuracy = 15;
 int TimeZoneAccuracy, TimeZoneAccuracyInvert;
@@ -36,175 +40,199 @@ int TimeZoneAccuracy, TimeZoneAccuracyInvert;
 int boilerTemp = 50; // test data && in future get from sensor
 
 void setup() {
-    Serial.begin(9600);
-    LCD.init();
-    LCD.backlight();
-    RTC.Begin();
+  Serial.begin(9600);
+  LCD.init();
+  LCD.backlight();
+  RTC.Begin();
 
-    pinMode(pinLedGreen, OUTPUT);
-    pinMode(pinLedYellow, OUTPUT);
-    pinMode(pinLedRed, OUTPUT);
+  pinMode(pinLedGreen, OUTPUT);
+  pinMode(pinLedYellow, OUTPUT);
+  pinMode(pinLedRed, OUTPUT);
 
-    TimeZoneAccuracy = RTC.GetMemory(accuracyPlace);
-    if (!TimeZoneAccuracy) {
-        RTC.SetMemory(0, accuracy);
-        TimeZoneAccuracy = accuracy;
-    }
+  pinMode(tumblerOn, INPUT_PULLUP);
+  pinMode(tumblerOff, INPUT_PULLUP);
 
-    TimeZoneAccuracyInvert = 60 - TimeZoneAccuracy;
+  TimeZoneAccuracy = RTC.GetMemory(accuracyPlace);
+  if (!TimeZoneAccuracy) {
+    RTC.SetMemory(0, accuracy);
+    TimeZoneAccuracy = accuracy;
+  }
 
-    // if you are using ESP-01 then uncomment the line below to reset the pins to
-    // the available pins for SDA, SCL
-    // Wire.begin(0, 2); // due to limited pins, use pin 0 and 2 for SDA, SCL //TODO: TEST IT
+  TimeZoneAccuracyInvert = 60 - TimeZoneAccuracy;
 
-    RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
-    Serial.print("compiled: ");
-    Serial.println(getDateTime(compiled));
+  // if you are using ESP-01 then uncomment the line below to reset the pins to
+  // the available pins for SDA, SCL
+  // Wire.begin(0, 2); // due to limited pins, use pin 0 and 2 for SDA, SCL //TODO: TEST IT
 
-    if (!RTC.IsDateTimeValid()) {
-        Serial.println("RTC lost confidence in the DateTime!");
-        RTC.SetDateTime(compiled);
-    }
+  RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+  Serial.print("compiled: ");
+  Serial.println(getDateTime(compiled));
 
-    if (!RTC.GetIsRunning()) {
-        Serial.println("RTC was not actively running, starting now");
-        RTC.SetIsRunning(true);
-    }
+  if (!RTC.IsDateTimeValid()) {
+    Serial.println("RTC lost confidence in the DateTime!");
+    RTC.SetDateTime(compiled);
+  }
 
-    RtcDateTime now = RTC.GetDateTime();
+  if (!RTC.GetIsRunning()) {
+    Serial.println("RTC was not actively running, starting now");
+    RTC.SetIsRunning(true);
+  }
 
-    if (now < compiled) {
-        Serial.println("RTC is older than compile time!  (Updating DateTime)");
-        RTC.SetDateTime(compiled);
-    } else if (now > compiled) {
-        Serial.println("RTC is newer than compile time. (this is expected)");
-    } else if (now == compiled) {
-        Serial.println("RTC is the same as compile time! (not expected but all is fine)");
-    }
+  RtcDateTime now = RTC.GetDateTime();
 
-    RTC.SetSquareWavePin(DS1307SquareWaveOut_Low);
+  if (now < compiled) {
+    Serial.println("RTC is older than compile time!  (Updating DateTime)");
+    RTC.SetDateTime(compiled);
+  } else if (now > compiled) {
+    Serial.println("RTC is newer than compile time. (this is expected)");
+  } else if (now == compiled) {
+    Serial.println("RTC is the same as compile time! (not expected but all is fine)");
+  }
+
+  RTC.SetSquareWavePin(DS1307SquareWaveOut_Low);
 }
 
 void loop() {
+  LCD.setCursor(15, 3);
+  if (!digitalRead(tumblerOn)) {
+    releController = "on";
+    LCD.print("*");
+  } else if (!digitalRead(tumblerOff)) {
+    releController = "off";
+    LCD.print("*");
+  } else {
+    releController = "auto";
+    LCD.print(" ");
+  }
 
-    if (!RTC.IsDateTimeValid()) {
-        Serial.println("RTC lost confidence in the DateTime!");
-    }
+  if (!RTC.IsDateTimeValid()) {
+    Serial.println("RTC lost confidence in the DateTime!");
+  }
 
-    RtcDateTime now = RTC.GetDateTime();
+  RtcDateTime now = RTC.GetDateTime();
 
-    LCD.setCursor(0, 0);
-    LCD.print(getDateTime(now));
-    LCD.setCursor(18, 0);
-    switch (now.DayOfWeek()) {
-        case 1: LCD.print("nH"); break;
-        case 2: LCD.print("BT"); break;
-        case 3: LCD.print("CP"); break;
-        case 4: LCD.print("4T"); break;
-        case 5: LCD.print("nT"); break;
-        case 6: LCD.print("C6"); break;
-        case 7: LCD.print("BC"); break;
-    }
-    Serial.println(getDateTime(now)); // TODO: only for test
+  LCD.setCursor(0, 0);
+  LCD.print(getDateTime(now));
+  LCD.setCursor(18, 0);
+  switch (now.DayOfWeek()) {
+    case 1: LCD.print("nH"); break;
+    case 2: LCD.print("BT"); break;
+    case 3: LCD.print("CP"); break;
+    case 4: LCD.print("4T"); break;
+    case 5: LCD.print("nT"); break;
+    case 6: LCD.print("C6"); break;
+    case 7: LCD.print("BC"); break;
+  }
+  Serial.println(getDateTime(now)); // TODO: only for test
 
-    LCD.setCursor(0, 2);
-    LCD.print("3OHA  +- TEMP  PEJIE");
-    LCD.setCursor(6, 3);
-    LCD.print(TimeZoneAccuracy);
+  LCD.setCursor(0, 2);
+  LCD.print("3OHA  +- TEMP  PEJIE");
+  LCD.setCursor(6, 3);
+  LCD.print(TimeZoneAccuracy);
 
-    String nowTime = formatTime(now.Hour(), now.Minute());
-    if (formatTime(6, TimeZoneAccuracyInvert) <= nowTime && nowTime < formatTime(10, TimeZoneAccuracy) ||
-        formatTime(16, TimeZoneAccuracyInvert) <= nowTime && nowTime < formatTime(21, TimeZoneAccuracy)) {
-        // Expensive zone - 1
-        // 6:45 - 10:14
-        // 16:45 - 21:14
-        doControl(1);
-    } else if (formatTime(10, TimeZoneAccuracy) <= nowTime && nowTime < formatTime(16, TimeZoneAccuracyInvert) ||
-               formatTime(21, TimeZoneAccuracy) <= nowTime && nowTime < formatTime(23, TimeZoneAccuracy)) {
-        // Normal zone - 2
-        // 10:15 - 16:44
-        // 21:15 - 23:14
-        doControl(2);
-    } else if (formatTime(23, TimeZoneAccuracy) <= nowTime || nowTime < formatTime(6, TimeZoneAccuracyInvert)) {
-        // Cheap zone - 3
-        // 23:15 - 6:44
-        doControl(3);
-    }
-    delay (1000);
+  String nowTime = formatTime(now.Hour(), now.Minute());
+  if (formatTime(6, TimeZoneAccuracyInvert) <= nowTime && nowTime < formatTime(10, TimeZoneAccuracy) ||
+      formatTime(16, TimeZoneAccuracyInvert) <= nowTime && nowTime < formatTime(21, TimeZoneAccuracy)) {
+    // Expensive zone - 1
+    // 6:45 - 10:14
+    // 16:45 - 21:14
+    doControl(1);
+  } else if (formatTime(10, TimeZoneAccuracy) <= nowTime && nowTime < formatTime(16, TimeZoneAccuracyInvert) ||
+             formatTime(21, TimeZoneAccuracy) <= nowTime && nowTime < formatTime(23, TimeZoneAccuracy)) {
+    // Normal zone - 2
+    // 10:15 - 16:44
+    // 21:15 - 23:14
+    doControl(2);
+  } else if (formatTime(23, TimeZoneAccuracy) <= nowTime || nowTime < formatTime(6, TimeZoneAccuracyInvert)) {
+    // Cheap zone - 3
+    // 23:15 - 6:44
+    doControl(3);
+  }
+  delay (1000);
 }
 
 #define countof(a) (sizeof(a) / sizeof(a[0]))
 
 String getDateTime(const RtcDateTime& dt) {
-    char datestring[20];
+  char datestring[20];
 
-    snprintf_P(
-        datestring,
-        countof(datestring),
-        PSTR("%02u/%02u/%02u %02u:%02u:%02u"),
-        dt.Day(),
-        dt.Month(),
-        dt.Year()-2000,
-        dt.Hour(),
-        dt.Minute(),
-        dt.Second()
-    );
+  snprintf_P(
+    datestring,
+    countof(datestring),
+    PSTR("%02u/%02u/%02u %02u:%02u:%02u"),
+    dt.Day(),
+    dt.Month(),
+    dt.Year()-2000,
+    dt.Hour(),
+    dt.Minute(),
+    dt.Second()
+  );
 
-    return datestring;
+  return datestring;
 }
 
 String formatTime(int hour, int minute) {
-    char timestring[6];
+  char timestring[6];
 
-    snprintf_P(
-        timestring,
-        countof(timestring),
-        PSTR("%02u:%02u"),
-        hour,
-        minute
-    );
+  snprintf_P(
+    timestring,
+    countof(timestring),
+    PSTR("%02u:%02u"),
+    hour,
+    minute
+  );
 
-    return timestring;
+  return timestring;
 }
 
 void doControl(int mode) {
-    LCD.setCursor(0, 3);
-    if (mode == 1) {
-        LCD.print("***");
-        digitalWrite(pinLedRed, HIGH);
-        digitalWrite(pinLedYellow, LOW);
-        digitalWrite(pinLedGreen, LOW);
+  LCD.setCursor(0, 3);
+  switch (mode) {
+    case 1:
+      LCD.print("$$$");
+      digitalWrite(pinLedRed, HIGH);
+      digitalWrite(pinLedYellow, LOW);
+      digitalWrite(pinLedGreen, LOW);
 
-        LCD.setCursor(17, 3);
+      LCD.setCursor(17, 3);
+      if (releController == "on") {
+        LCD.print(" ON");
+      } else {
         LCD.print("OFF");
-        // Rele is off
-    } else if (mode == 2) {
-        LCD.print("** ");
-        digitalWrite(pinLedRed, LOW);
-        digitalWrite(pinLedYellow, HIGH);
-        digitalWrite(pinLedGreen, LOW);
+      }
+      break;
+    case 2:
+      LCD.print("$$ ");
+      digitalWrite(pinLedRed, LOW);
+      digitalWrite(pinLedYellow, HIGH);
+      digitalWrite(pinLedGreen, LOW);
 
-        LCD.setCursor(17, 3);
-        if (boilerTemp < 40) {
-            LCD.print(" ON");
-            // Rele is on
-        } else {
-            LCD.print("OFF");
-            // Rele is off
-        }
-    } else {
-        LCD.print("*  ");
-        digitalWrite(pinLedRed, LOW);
-        digitalWrite(pinLedYellow, LOW);
-        digitalWrite(pinLedGreen, HIGH);
+      LCD.setCursor(17, 3);
+      if (releController == "on") {
+        LCD.print(" ON");
+      } else if (releController == "off") {
+        LCD.print("OFF");
+      } else if (boilerTemp < 40) {
+        LCD.print(" ON");
+      } else {
+        LCD.print("OFF");
+      }
+      break;
+    default:
+      LCD.print("$  ");
+      digitalWrite(pinLedRed, LOW);
+      digitalWrite(pinLedYellow, LOW);
+      digitalWrite(pinLedGreen, HIGH);
 
-        LCD.setCursor(17, 3);
-        if (boilerTemp < 80) {
-            LCD.print(" ON");
-            // Rele is on
-        } else {
-            LCD.print("OFF");
-            // Rele is off
-        }
-    }
+      LCD.setCursor(17, 3);
+      if (releController == "on") {
+        LCD.print(" ON");
+      } else if (releController == "off") {
+        LCD.print("OFF");
+      } else if (boilerTemp < 80) {
+        LCD.print(" ON");
+      } else {
+        LCD.print("OFF");
+      }
+  }
 }
