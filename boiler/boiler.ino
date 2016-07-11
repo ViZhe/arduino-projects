@@ -8,6 +8,7 @@
 //          SCL       -> A5
 // LCD:     SDA       -> A4
 //          SCL       -> A5
+// DS18B20: data      -> D10
 
 // Ночная зона: с 23:00 до 7:00 часов
 // Обычная зона: с 10:00 до 17:00 часов, с 21:00 до 23:00 часов
@@ -17,9 +18,16 @@
 // TODO: Режим редактирования времени и погрешности (5-30 минут)
 
 #include <Wire.h>
+#include <OneWire.h>
 #include <LiquidCrystal_I2C.h>
 #include <RtcDS1307.h>
 
+
+OneWire ds (10);
+byte data[12];
+byte tempAddr[8] = {0x28, 0xFF, 0x41, 0xD7, 0x43, 0x16, 0x03, 0x9A};
+unsigned int raw;
+float temp;
 
 LiquidCrystal_I2C LCD(0x27, 20, 4);
 RtcDS1307 RTC;
@@ -36,8 +44,6 @@ int tumblerOff = 3;
 int accuracyPlace = 0;
 int accuracy = 15;
 int TimeZoneAccuracy, TimeZoneAccuracyInvert;
-
-int boilerTemp = 50; // test data && in future get from sensor
 
 void setup() {
   Serial.begin(9600);
@@ -125,10 +131,14 @@ void loop() {
   }
   Serial.println(getDateTime(now)); // TODO: only for test
 
+  temp = DS18B20(tempAddr);
+
   LCD.setCursor(0, 2);
   LCD.print("3OHA  +- TEMP  PEJIE");
   LCD.setCursor(6, 3);
   LCD.print(TimeZoneAccuracy);
+  LCD.setCursor(9, 3);
+  LCD.print(temp, 1);
 
   String nowTime = formatTime(now.Hour(), now.Minute());
   if (formatTime(6, TimeZoneAccuracyInvert) <= nowTime && nowTime < formatTime(10, TimeZoneAccuracy) ||
@@ -212,7 +222,7 @@ void doControl(int mode) {
         LCD.print(" ON");
       } else if (releController == "off") {
         LCD.print("OFF");
-      } else if (boilerTemp < 40) {
+      } else if (temp < 40) {
         LCD.print(" ON");
       } else {
         LCD.print("OFF");
@@ -229,10 +239,26 @@ void doControl(int mode) {
         LCD.print(" ON");
       } else if (releController == "off") {
         LCD.print("OFF");
-      } else if (boilerTemp < 80) {
+      } else if (temp < 80) {
         LCD.print(" ON");
       } else {
         LCD.print("OFF");
       }
   }
+}
+
+float DS18B20(byte *adres) {
+  ds.reset();
+  ds.select(adres);
+  ds.write(0x44, 1);
+  ds.reset();
+  ds.select(adres);
+  ds.write(0xBE);
+
+  for (byte i = 0; i < 12; i++) {
+    data[i] = ds.read ();
+  }
+  raw = (data[1] << 8) | data[0];
+  float celsius = (float)raw / 16.0;
+  return celsius;
 }
