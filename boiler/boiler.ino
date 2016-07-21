@@ -36,6 +36,8 @@ int pinLedGreen = 11;
 int pinLedYellow = 12;
 int pinLedRed = 13;
 
+int pinRelay = 8;
+
 String releController;
 
 int tumblerOn = 2;
@@ -54,6 +56,8 @@ void setup() {
   pinMode(pinLedGreen, OUTPUT);
   pinMode(pinLedYellow, OUTPUT);
   pinMode(pinLedRed, OUTPUT);
+
+  pinMode(pinRelay, OUTPUT);
 
   pinMode(tumblerOn, INPUT_PULLUP);
   pinMode(tumblerOff, INPUT_PULLUP);
@@ -207,8 +211,10 @@ void doControl(int mode) {
       LCD.setCursor(17, 3);
       if (releController == "on") {
         LCD.print(" ON");
+        digitalWrite(pinRelay, LOW);
       } else {
         LCD.print("OFF");
+        digitalWrite(pinRelay, HIGH);
       }
       break;
     case 2:
@@ -220,12 +226,16 @@ void doControl(int mode) {
       LCD.setCursor(17, 3);
       if (releController == "on") {
         LCD.print(" ON");
+        digitalWrite(pinRelay, LOW);
       } else if (releController == "off") {
         LCD.print("OFF");
+        digitalWrite(pinRelay, HIGH);
       } else if (temp < 40) {
         LCD.print(" ON");
+        digitalWrite(pinRelay, LOW);
       } else {
         LCD.print("OFF");
+        digitalWrite(pinRelay, HIGH);
       }
       break;
     default:
@@ -237,12 +247,16 @@ void doControl(int mode) {
       LCD.setCursor(17, 3);
       if (releController == "on") {
         LCD.print(" ON");
+        digitalWrite(pinRelay, LOW);
       } else if (releController == "off") {
         LCD.print("OFF");
+        digitalWrite(pinRelay, HIGH);
       } else if (temp < 80) {
         LCD.print(" ON");
+        digitalWrite(pinRelay, LOW);
       } else {
         LCD.print("OFF");
+        digitalWrite(pinRelay, HIGH);
       }
   }
 }
