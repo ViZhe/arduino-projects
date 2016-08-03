@@ -38,6 +38,11 @@ int pinLedRed = 13;
 
 int pinRelay = 8;
 
+int pinAxisY = 0;
+int pinAxisX = 1;
+int pinAxisZ = 7;
+int value_X, value_Y, value_Z = 0;
+
 String releController;
 
 int tumblerOn = 2;
@@ -58,6 +63,8 @@ void setup() {
   pinMode(pinLedRed, OUTPUT);
 
   pinMode(pinRelay, OUTPUT);
+
+  pinMode(pinAxisZ, INPUT_PULLUP);
 
   pinMode(tumblerOn, INPUT_PULLUP);
   pinMode(tumblerOff, INPUT_PULLUP);
@@ -103,6 +110,19 @@ void setup() {
 }
 
 void loop() {
+  value_X = analogRead(pinAxisX);    // Считываем аналоговое значение оси Х
+  Serial.print("X:");
+  Serial.print(value_X);      // Выводим значение в Serial Monitor
+
+  value_Y = analogRead(pinAxisY);    // Считываем аналоговое значение оси Y
+  Serial.print(" | Y:");
+  Serial.print(value_Y, DEC);      // Выводим значение в Serial Monitor
+
+  value_Z = digitalRead(pinAxisZ);   // Считываем цифровое значение оси Z (кнопка)
+  value_Z = value_Z ^ 1; // инвертируем значение
+  Serial.print(" | Z: ");
+  Serial.println(value_Z);
+
   LCD.setCursor(15, 3);
   if (!digitalRead(tumblerOn)) {
     releController = "on";
