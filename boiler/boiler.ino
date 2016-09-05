@@ -98,7 +98,7 @@ void setup() {
     RTC.SetDateTime(compiled);
   }
 
-  // RTC.SetSquareWavePin(DS1307SquareWaveOut_High);
+  RTC.SetSquareWavePin(DS1307SquareWaveOut_Low);
 
   LCD.setCursor(0, 2);
   LCD.print("3OHA  +- TEMP  PEJIE");
@@ -110,35 +110,8 @@ void loop() {
   joystickX = analogRead(pinAxisX);
   joystickY = analogRead(pinAxisY);
   joystickZ = digitalRead(pinAxisZ) ^ 1;
-  // value_Z = value_Z ^ 1;
-  //
-  LCD.backlight();
-  // if (!backlight && value_Z) {
-  //   backlightTimeout = 10;
-  //   LCD.backlight();
-  //   backlight = true;
-  //   Serial.print(1);
-  // } else if (backlightTimeout > 0) {
-  //   backlightTimeout = backlightTimeout - 1;
-  //   Serial.print(2);
-  // } else if (backlight) {
-  //   // LCD.noBacklight();
-  //   backlight = false;
-  //   Serial.print(3);
-  // }
-  //
-  // value_X = analogRead(pinAxisX);    // Считываем аналоговое значение оси Х
-  // Serial.print("X:");
-  // Serial.print(value_X);      // Выводим значение в Serial Monitor
-  //
-  // value_Y = analogRead(pinAxisY);    // Считываем аналоговое значение оси Y
-  // Serial.print(" | Y:");
-  // Serial.print(value_Y, DEC);      // Выводим значение в Serial Monitor
-  //
-  // // value_Z = digitalRead(pinAxisZ);   // Считываем цифровое значение оси Z (кнопка)
-  // // value_Z = value_Z ^ 1; // инвертируем значение
-  // Serial.print(" | Z: ");
-  // Serial.println(value_Z);
+
+  controllerBacklight() // TODO: test it
 
   releController = getReleControllerValue();
 
@@ -405,5 +378,25 @@ void joystickControl() {
         editTimeMode = 1;
       }
     }
+  }
+}
+
+void controllerBacklight () {
+  if (joystickZ ||
+      joystickX <= 400 || joystickX >= 600 ||
+      joystickY <= 400 || joystickY >= 600
+    ) {
+      backlightTimeout = 15;
+    }
+
+  if (backlightTimeout > 0) {
+    if (!backlight) {
+      LCD.backlight();
+      backlight = true
+    }
+    backlightTimeout = backlightTimeout - 0.2;
+  } else {
+    LCD.noBacklight();
+    backlight = false
   }
 }
